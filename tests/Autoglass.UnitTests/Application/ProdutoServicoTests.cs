@@ -228,16 +228,8 @@ namespace Autoglass.UnitTests.Application
         {
             //Arrange
             var fornecedorDTO = new FornecedorDTO();
-
-            var produtoDTO = new ProdutoDTO()
-            {
-                Id = 1,
-                Descricao = "Descricao Teste",
-                Situacao = true,
-                DataDeFabricacao = DateTime.Now.Date,
-                DataDeValidade = DateTime.Now.AddDays(10).Date,
-            };
-
+            var produto = new Produto("Descricao Teste", true, DateTime.Now.Date, DateTime.Now.AddDays(10).Date, 1);
+            var produtoDTO = new ProdutoDTO() { Id = 1 };
 
             var produtoRepositorioMock = new Mock<IProdutoRepositorio>();
             var fornecedorServicoMock = new Mock<IFornecedorServico>();
@@ -245,6 +237,7 @@ namespace Autoglass.UnitTests.Application
 
             produtoRepositorioMock.Setup(f => f.Atualizar(It.IsAny<Produto>())).Returns(Task.CompletedTask);
             fornecedorServicoMock.Setup(f => f.ObterPorId(It.IsAny<int>())).ReturnsAsync(fornecedorDTO);
+            produtoRepositorioMock.Setup(f => f.ObterPorId(It.IsAny<int>())).ReturnsAsync(produto);
 
             var produtoServico = new ProdutoServico(produtoRepositorioMock.Object, fornecedorServicoMock.Object, mapper);
 
@@ -286,7 +279,7 @@ namespace Autoglass.UnitTests.Application
         }
 
         [Fact]
-        public async void Atualizar_Retorna_DataDeFabricacaoEhMaiorQueDataDeValidadeException()
+        public async void Atualizar_Retorna_ProdutoNaoExisteException()
         {
             //Arrange
             var fornecedorDTO = new FornecedorDTO();
@@ -307,6 +300,40 @@ namespace Autoglass.UnitTests.Application
 
             produtoRepositorioMock.Setup(f => f.Atualizar(It.IsAny<Produto>())).Returns(Task.CompletedTask);
             fornecedorServicoMock.Setup(f => f.ObterPorId(It.IsAny<int>())).ReturnsAsync(fornecedorDTO);
+            produtoRepositorioMock.Setup(f => f.ObterPorId(It.IsAny<int>())).ReturnsAsync(() => null);
+
+            var produtoServico = new ProdutoServico(produtoRepositorioMock.Object, fornecedorServicoMock.Object, mapper);
+
+            //Act
+            var resultado = produtoServico.Atualizar(produtoDTO);
+
+            //Assert
+            await Assert.ThrowsAsync<ProdutoNaoExisteException>(async () => await resultado);
+        }
+
+        [Fact]
+        public async void Atualizar_Retorna_DataDeFabricacaoEhMaiorQueDataDeValidadeException()
+        {
+            //Arrange
+            var fornecedorDTO = new FornecedorDTO();
+            var produto = new Produto();
+            var produtoDTO = new ProdutoDTO()
+            {
+                Id = 1,
+                Descricao = "Descricao Teste",
+                Situacao = true,
+                DataDeFabricacao = DateTime.Now.Date,
+                DataDeValidade = DateTime.Now.Date,
+            };
+
+
+            var produtoRepositorioMock = new Mock<IProdutoRepositorio>();
+            var fornecedorServicoMock = new Mock<IFornecedorServico>();
+            var mapper = TestMapper.GetMapper();
+
+            produtoRepositorioMock.Setup(f => f.Atualizar(It.IsAny<Produto>())).Returns(Task.CompletedTask);
+            fornecedorServicoMock.Setup(f => f.ObterPorId(It.IsAny<int>())).ReturnsAsync(fornecedorDTO);
+            produtoRepositorioMock.Setup(f => f.ObterPorId(It.IsAny<int>())).ReturnsAsync(produto);
 
             var produtoServico = new ProdutoServico(produtoRepositorioMock.Object, fornecedorServicoMock.Object, mapper);
 
